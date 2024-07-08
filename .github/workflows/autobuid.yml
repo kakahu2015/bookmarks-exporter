@@ -28,10 +28,6 @@ jobs:
         pnpm --version
     - name: Install dependencies
       run: pnpm install
-    - name: List project files before build
-      run: |
-        echo "Project structure before build:"
-        tree -L 2 || ls -R
     - name: Display build script
       run: |
         echo "Build script from package.json:"
@@ -50,20 +46,23 @@ jobs:
         tree -L 2 || ls -R
     - name: Check build output directory
       run: |
-        BUILD_DIR=$(jq -r '.buildOptions.outDir // "dist"' package.json)
-        echo "Expected build directory: $BUILD_DIR"
-        if [ -d "$BUILD_DIR" ]; then
-          echo "$BUILD_DIR directory exists. Contents:"
-          ls -la "$BUILD_DIR"
+        if [ -d "build" ]; then
+          echo "build directory exists. Contents:"
+          ls -la build
+          BUILD_DIR="build"
+        elif [ -d "dist" ]; then
+          echo "dist directory exists. Contents:"
+          ls -la dist
+          BUILD_DIR="dist"
         else
-          echo "Error: $BUILD_DIR directory not found."
+          echo "Error: Neither build nor dist directory found."
           echo "Current directory contents:"
           ls -la
           exit 1
         fi
+        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
     - name: Zip build output
       run: |
-        BUILD_DIR=$(jq -r '.buildOptions.outDir // "dist"' package.json)
         if [ -d "$BUILD_DIR" ]; then
           zip -r build_output.zip "$BUILD_DIR"
           echo "build_output.zip created successfully"
