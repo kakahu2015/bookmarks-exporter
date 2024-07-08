@@ -70,6 +70,12 @@ jobs:
           echo "Error: $BUILD_DIR directory not found. Cannot create zip file."
           exit 1
         fi
+    - name: Generate version number
+      id: version
+      run: |
+        VERSION=$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
     - name: Create Release
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       id: create_release
@@ -77,8 +83,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.sha }}
-        release_name: Release ${{ github.sha }}
+        tag_name: v${{ steps.version.outputs.version }}
+        release_name: Release v${{ steps.version.outputs.version }}
         draft: false
         prerelease: false
     - name: Upload Release Asset
