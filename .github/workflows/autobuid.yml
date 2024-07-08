@@ -48,8 +48,21 @@ jobs:
           echo "Build failed. Listing source files:"
           find src -name "*.js" -type f -exec echo {} \; -exec cat {} \;
         fi
+    - name: List directory contents
+      run: |
+        echo "Current directory:"
+        ls -la
+        echo "Contents of the dist directory (if it exists):"
+        ls -la dist || echo "dist directory does not exist"
     - name: Zip dist directory
-      run: zip -r dist.zip dist
+      run: |
+        if [ -d "dist" ]; then
+          zip -r dist.zip dist
+          echo "dist.zip created successfully"
+        else
+          echo "Error: dist directory not found. Cannot create zip file."
+          exit 1
+        fi
     - name: Create Release
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       id: create_release
