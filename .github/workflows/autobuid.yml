@@ -1,31 +1,27 @@
-name: Build
+name: Build and Release
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
-
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-
     - name: Install pnpm
       uses: pnpm/action-setup@v2
       with:
         version: 8
-
     - name: Display package.json content
       run: cat package.json
-
     - name: Check .plasmo directory
       run: |
         if [ -d ".plasmo" ]; then
@@ -34,21 +30,17 @@ jobs:
         else
           echo ".plasmo directory does not exist"
         fi
-
     - name: Check Node.js and pnpm versions
       run: |
         node --version
         pnpm --version
-
     - name: Install dependencies
       run: pnpm install
-
     - name: Clean pnpm cache and reinstall
       run: |
         pnpm store prune
         rm -rf node_modules
         pnpm install --force
-
     - name: Build project with verbose output
       run: |
         pnpm build --verbose
@@ -56,3 +48,26 @@ jobs:
           echo "Build failed. Listing source files:"
           find src -name "*.js" -type f -exec echo {} \; -exec cat {} \;
         fi
+    - name: Zip dist directory
+      run: zip -r dist.zip dist
+    - name: Create Release
+      if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.sha }}
+        release_name: Release ${{ github.sha }}
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset
+      if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist.zip
+        asset_name: dist.zip
+        asset_content_type: application/zip
