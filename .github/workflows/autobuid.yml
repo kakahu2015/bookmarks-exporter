@@ -22,45 +22,53 @@ jobs:
         version: 8
     - name: Display package.json content
       run: cat package.json
-    - name: Check .plasmo directory
-      run: |
-        if [ -d ".plasmo" ]; then
-          echo ".plasmo directory exists"
-          ls -la .plasmo
-        else
-          echo ".plasmo directory does not exist"
-        fi
     - name: Check Node.js and pnpm versions
       run: |
         node --version
         pnpm --version
     - name: Install dependencies
       run: pnpm install
-    - name: Clean pnpm cache and reinstall
+    - name: List project files before build
       run: |
-        pnpm store prune
-        rm -rf node_modules
-        pnpm install --force
+        echo "Project structure before build:"
+        tree -L 2 || ls -R
+    - name: Display build script
+      run: |
+        echo "Build script from package.json:"
+        jq '.scripts.build' package.json
     - name: Build project with verbose output
       run: |
         pnpm build --verbose
         if [ $? -ne 0 ]; then
           echo "Build failed. Listing source files:"
           find src -name "*.js" -type f -exec echo {} \; -exec cat {} \;
+          exit 1
         fi
-    - name: List directory contents
+    - name: List project files after build
       run: |
-        echo "Current directory:"
-        ls -la
-        echo "Contents of the dist directory (if it exists):"
-        ls -la dist || echo "dist directory does not exist"
-    - name: Zip dist directory
+        echo "Project structure after build:"
+        tree -L 2 || ls -R
+    - name: Check build output directory
       run: |
-        if [ -d "dist" ]; then
-          zip -r dist.zip dist
-          echo "dist.zip created successfully"
+        BUILD_DIR=$(jq -r '.buildOptions.outDir // "dist"' package.json)
+        echo "Expected build directory: $BUILD_DIR"
+        if [ -d "$BUILD_DIR" ]; then
+          echo "$BUILD_DIR directory exists. Contents:"
+          ls -la "$BUILD_DIR"
         else
-          echo "Error: dist directory not found. Cannot create zip file."
+          echo "Error: $BUILD_DIR directory not found."
+          echo "Current directory contents:"
+          ls -la
+          exit 1
+        fi
+    - name: Zip build output
+      run: |
+        BUILD_DIR=$(jq -r '.buildOptions.outDir // "dist"' package.json)
+        if [ -d "$BUILD_DIR" ]; then
+          zip -r build_output.zip "$BUILD_DIR"
+          echo "build_output.zip created successfully"
+        else
+          echo "Error: $BUILD_DIR directory not found. Cannot create zip file."
           exit 1
         fi
     - name: Create Release
@@ -81,6 +89,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist.zip
-        asset_name: dist.zip
+        asset_path: ./build_output.zip
+        asset_name: build_output.zip
         asset_content_type: application/zip
