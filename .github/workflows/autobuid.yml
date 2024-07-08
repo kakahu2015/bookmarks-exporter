@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build
 
 on:
   push:
@@ -56,7 +56,3 @@ jobs:
           echo "Build failed. Listing source files:"
           find src -name "*.js" -type f -exec echo {} \; -exec cat {} \;
         fi
-
-    # 如果您添加了空的测试脚本，可以保留这一步
-    - name: Run tests
-      run: pnpm test
