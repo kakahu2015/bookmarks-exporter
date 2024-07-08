@@ -25,10 +25,17 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Build project
-      run: pnpm build
+    - name: List project files
+      run: ls -R
+
+    - name: Display package.json content
+      run: cat package.json
+
+    - name: Build project with verbose output
+      run: pnpm build --verbose
 
     - name: Create Release
+      if: success()
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -40,6 +47,7 @@ jobs:
         prerelease: false
 
     - name: Upload Release Asset
+      if: success()
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
