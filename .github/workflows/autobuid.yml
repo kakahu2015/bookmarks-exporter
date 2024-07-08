@@ -1,58 +1,61 @@
-name: Build and Release
+name: Build and Test
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
       with:
-        node-version: '14'
+        node-version: '18'
 
     - name: Install pnpm
       uses: pnpm/action-setup@v2
       with:
-        version: 6.0.2
-
-    - name: Install dependencies
-      run: pnpm install
-
-    - name: List project files
-      run: ls -R
+        version: 8
 
     - name: Display package.json content
       run: cat package.json
 
+    - name: Check .plasmo directory
+      run: |
+        if [ -d ".plasmo" ]; then
+          echo ".plasmo directory exists"
+          ls -la .plasmo
+        else
+          echo ".plasmo directory does not exist"
+        fi
+
+    - name: Check Node.js and pnpm versions
+      run: |
+        node --version
+        pnpm --version
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Clean pnpm cache and reinstall
+      run: |
+        pnpm store prune
+        rm -rf node_modules
+        pnpm install --force
+
     - name: Build project with verbose output
-      run: pnpm build --verbose
+      run: |
+        pnpm build --verbose
+        if [ $? -ne 0 ]; then
+          echo "Build failed. Listing source files:"
+          find src -name "*.js" -type f -exec echo {} \; -exec cat {} \;
+        fi
 
-    - name: Create Release
-      if: success()
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.sha }}
-        release_name: Release ${{ github.sha }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      if: success()
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist
-        asset_name: dist.zip
-        asset_content_type: application/zip
+    - name: Run tests
+      run: pnpm test
