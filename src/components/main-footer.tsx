@@ -6,12 +6,12 @@ export function MainFooter() {
     <footer className="text-zinc-600 flex items-center justify-center">
       <span className="mr-3">
         &copy;&nbsp;{getCopyYear()}&nbsp;
-        <a href="https://pintree.io" target="_blank" rel="noreferrer">
+        <a href="https://github.com/kakahu2015" target="_blank" rel="noreferrer">
           Pintree.io
         </a>
       </span>
       <a
-        href="https://github.com/Pintree-io/pintree"
+        href="https://github.com/kakahu2015/bookmarks-exporter"
         className="flex items-center"
         target="_blank"
         rel="noreferrer">
